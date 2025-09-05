@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Cartesiano Interactivo</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #10b981;
+            --accent: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --light: #f9fafb;
+            --border: #e5e7eb;
+            --text: #374151;
+            --text-light: #6b7280;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .canvas-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .canvas-container h3 {
+            margin-bottom: 15px;
+            color: var(--dark);
+            text-align: center;
+        }
+
+        #cartesianCanvas {
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            background: #fafafa;
+            cursor: crosshair;
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            height: fit-content;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+        }
+
+        .btn-secondary:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+            width: auto;
+        }
+
+        .points-list {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .point-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--light);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .point-info {
+            flex: 1;
+        }
+
+        .point-coords {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .point-label {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .point-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .stats {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .stats h4 {
+            margin-bottom: 15px;
+            color: var(--dark);
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--text-light);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .instructions {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .instructions h3 {
+            margin-bottom: 15px;
+        }
+
+        .instructions ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .instructions li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .procedures {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .procedures h3 {
+            color: var(--dark);
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 1.5rem;
+        }
+
+        .procedure-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--light);
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .procedure-section h4 {
+            color: var(--dark);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .procedure-section p {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .formula-box {
+            background: var(--dark);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+
+        .formula-box code {
+            background: none;
+            color: #fbbf24;
+            font-weight: bold;
+        }
+
+        .example-box {
+            background: #f0f9ff;
+            border: 2px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .example-box p {
+            margin-bottom: 8px;
+        }
+
+        .example-box code {
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .procedure-section ul, .procedure-section ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .procedure-section li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .procedure-section code {
+            background: #f3f4f6;
+            color: var(--dark);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .calculation-steps {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .calculation-steps h4 {
+            color: var(--dark);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .step-box {
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .step-box h5 {
+            color: var(--dark);
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .step-calculation {
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .step-calculation p {
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+
+        .summary-box {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .summary-box h5 {
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .summary-box p {
+            margin-bottom: 5px;
+            font-size: 0.95rem;
+        }
+
+        .points-info {
+            margin-bottom: 25px;
+        }
+
+        .point-detail {
+            background: white;
+            border: 2px solid var(--secondary);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .point-detail h5 {
+            color: var(--dark);
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .point-coords-detail {
+            background: #f0fdf4;
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .point-coords-detail p {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .point-coords-detail ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+
+        .point-coords-detail li {
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+        }
+
+        .distances-section {
+            margin-bottom: 25px;
+        }
+
+        .distances-section h5 {
+            color: var(--dark);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            text-align: center;
+            background: var(--light);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .step-box h6 {
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-size: 1rem;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 5px;
+        }
+
+        .calculation-step {
+            background: #f8fafc;
+            border-left: 4px solid var(--accent);
+            padding: 10px 15px;
+            margin: 10px 0;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .calculation-step p {
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .calculation-step p:first-child {
+            color: var(--dark);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .result-box {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .result-box p {
+            margin: 0;
+            font-size: 1rem;
+            color: var(--dark);
+        }
+
+        .summary-content {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .summary-content p {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .distances-table-section {
+            margin-bottom: 25px;
+        }
+
+        .distances-table-section h5 {
+            color: var(--dark);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            text-align: center;
+            background: var(--light);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .distances-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 0.9rem;
+        }
+
+        .distances-table th {
+            background: var(--primary);
+            color: white;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .distances-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .distances-table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .distances-table tr:hover {
+            background: #e0f2fe;
+        }
+
+        .distances-table td:nth-child(3) {
+            text-align: center;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .distances-table td:nth-child(4) {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        .point-added-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 1000;
+            animation: slideInRight 0.5s ease-out;
+            max-width: 300px;
+        }
+
+        .point-added-message .message-content h4 {
+            margin: 0 0 10px 0;
+            font-size: 1.1rem;
+        }
+
+        .point-added-message .message-content p {
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .point-added-message {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .controls {
+                order: -1;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            #cartesianCanvas {
+                width: 100%;
+                height: 300px;
+            }
+        }
+
+        .canvas-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .distance-line {
+            stroke: var(--accent);
+            stroke-width: 2;
+            stroke-dasharray: 5,5;
+            animation: dash 1s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -10;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗺️ Mapa Cartesiano Interactivo</h1>
+            <p>Ingresa puntos y visualiza cómo se ven en el plano cartesiano</p>
+        </div>
+
+        <div class="instructions">
+            <h3>📋 Instrucciones de Uso</h3>
+            <ul>
+                <li>Ingresa las coordenadas X e Y en el formulario</li>
+                <li>Haz clic en "Agregar Punto" para añadir el punto al plano</li>
+                <li>Haz clic directamente en el canvas para agregar puntos</li>
+                <li>Los puntos se conectan automáticamente con líneas</li>
+                <li>Puedes eliminar puntos individuales o limpiar todo</li>
+            </ul>
+        </div>
+
+        <div class="procedures">
+            <h3>🧮 Procedimiento Matemático Detallado</h3>
+            <div class="procedure-section">
+                <h4>1. Conversión de Coordenadas</h4>
+                <p><strong>Fórmula:</strong> Para convertir coordenadas del canvas a coordenadas cartesianas:</p>
+                <div class="formula-box">
+                    <code>x_cartesiano = (x_canvas - origen_x) / escala</code><br>
+                    <code>y_cartesiano = -(y_canvas - origen_y) / escala</code>
+                </div>
+                <p><strong>Donde:</strong></p>
+                <ul>
+                    <li><code>origen_x, origen_y</code> = Centro del canvas (300, 200)</li>
+                    <li><code>escala</code> = 20 píxeles por unidad</li>
+                    <li>El signo negativo en Y invierte el eje vertical</li>
+                </ul>
+            </div>
+
+            <div class="procedure-section">
+                <h4>2. Cálculo de Distancia Entre Dos Puntos</h4>
+                <p><strong>Fórmula de Distancia Euclidiana:</strong></p>
+                <div class="formula-box">
+                    <code>d = √[(x₂ - x₁)² + (y₂ - y₁)²]</code>
+                </div>
+                <p><strong>Procedimiento paso a paso:</strong></p>
+                <ol>
+                    <li>Calcular la diferencia en X: <code>Δx = x₂ - x₁</code></li>
+                    <li>Calcular la diferencia en Y: <code>Δy = y₂ - y₁</code></li>
+                    <li>Elevar al cuadrado: <code>Δx²</code> y <code>Δy²</code></li>
+                    <li>Sumar los cuadrados: <code>Δx² + Δy²</code></li>
+                    <li>Calcular la raíz cuadrada: <code>√(Δx² + Δy²)</code></li>
+                </ol>
+            </div>
+
+            <div class="procedure-section">
+                <h4>3. Distancia Total del Recorrido</h4>
+                <p><strong>Fórmula:</strong></p>
+                <div class="formula-box">
+                    <code>Distancia Total = Σ(d₁ + d₂ + d₃ + ... + dₙ₋₁)</code>
+                </div>
+                <p><strong>Donde:</strong></p>
+                <ul>
+                    <li><code>d₁</code> = distancia del punto 1 al punto 2</li>
+                    <li><code>d₂</code> = distancia del punto 2 al punto 3</li>
+                    <li><code>dₙ₋₁</code> = distancia del punto n-1 al punto n</li>
+                </ul>
+            </div>
+
+            <div class="procedure-section">
+                <h4>4. Distancia Promedio</h4>
+                <p><strong>Fórmula:</strong></p>
+                <div class="formula-box">
+                    <code>Distancia Promedio = Distancia Total / (Número de Puntos - 1)</code>
+                </div>
+                <p><strong>Ejemplo:</strong> Si tienes 4 puntos, hay 3 segmentos, por lo que divides entre 3.</p>
+            </div>
+
+            <div class="procedure-section">
+                <h4>5. Ejemplo Práctico</h4>
+                <p><strong>Datos de ejemplo:</strong> Punto A(2, 3) y Punto B(5, 7)</p>
+                <div class="example-box">
+                    <p><strong>Paso 1:</strong> Calcular diferencias</p>
+                    <code>Δx = 5 - 2 = 3</code><br>
+                    <code>Δy = 7 - 3 = 4</code>
+                    
+                    <p><strong>Paso 2:</strong> Elevar al cuadrado</p>
+                    <code>Δx² = 3² = 9</code><br>
+                    <code>Δy² = 4² = 16</code>
+                    
+                    <p><strong>Paso 3:</strong> Sumar y calcular raíz</p>
+                    <code>d = √(9 + 16) = √25 = 5</code>
+                    
+                    <p><strong>Resultado:</strong> La distancia entre A y B es 5 unidades</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="canvas-container">
+                <h3>Plano Cartesiano</h3>
+                <div class="canvas-info">
+                    Haz clic en el plano para agregar puntos
+                </div>
+                <canvas id="cartesianCanvas" width="600" height="400"></canvas>
+            </div>
+
+            <div class="controls">
+                <h3>Controles</h3>
+                
+                <div class="form-group">
+                    <label for="pointX">Coordenada X:</label>
+                    <input type="number" id="pointX" placeholder="Ingresa X" step="any">
+                </div>
+
+                <div class="form-group">
+                    <label for="pointY">Coordenada Y:</label>
+                    <input type="number" id="pointY" placeholder="Ingresa Y" step="any">
+                </div>
+
+                <div class="form-group">
+                    <label for="pointLabel">Etiqueta (opcional):</label>
+                    <input type="text" id="pointLabel" placeholder="Nombre del punto">
+                </div>
+
+                <button class="btn" onclick="addPoint()">➕ Agregar Punto</button>
+                <button class="btn btn-secondary" onclick="clearAll()" style="margin-top: 10px;">🗑️ Limpiar Todo</button>
+
+                <div class="points-list" id="pointsList">
+                    <p style="text-align: center; color: var(--text-light); margin-top: 20px;">
+                        No hay puntos agregados
+                    </p>
+                </div>
+
+                <div class="stats" id="stats">
+                    <h4>📊 Estadísticas</h4>
+                    <div class="stat-item">
+                        <span class="stat-label">Total de puntos:</span>
+                        <span class="stat-value" id="totalPoints">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Distancia total:</span>
+                        <span class="stat-value" id="totalDistance">0.00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Distancia promedio:</span>
+                        <span class="stat-value" id="avgDistance">0.00</span>
+                    </div>
+                </div>
+
+                <div class="calculation-steps" id="calculationSteps">
+                    <p style="text-align: center; color: var(--text-light);">Agrega al menos 2 puntos para ver los cálculos</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class CartesianPlane {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.points = [];
+                this.scale = 20; // Píxeles por unidad
+                this.origin = {
+                    x: this.canvas.width / 2,
+                    y: this.canvas.height / 2
+                };
+                this.colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+                
+                this.setupCanvas();
+                this.draw();
+            }
+
+            setupCanvas() {
+                // Hacer el canvas responsive
+                this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+                this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+            }
+
+            handleCanvasClick(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left - this.origin.x) / this.scale;
+                const y = -(e.clientY - rect.top - this.origin.y) / this.scale;
+                
+                // Redondear a 1 decimal
+                const roundedX = Math.round(x * 10) / 10;
+                const roundedY = Math.round(y * 10) / 10;
+                
+                this.addPoint(roundedX, roundedY, `P${this.points.length + 1}`);
+            }
+
+            handleMouseMove(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left - this.origin.x) / this.scale;
+                const y = -(e.clientY - rect.top - this.origin.y) / this.scale;
+                
+                const roundedX = Math.round(x * 10) / 10;
+                const roundedY = Math.round(y * 10) / 10;
+                
+                this.canvas.title = `Coordenadas: (${roundedX}, ${roundedY})`;
+            }
+
+            addPoint(x, y, label = '') {
+                const point = { x, y, label, color: this.colors[this.points.length % this.colors.length] };
+                this.points.push(point);
+                this.draw();
+                this.updateUI();
+                
+                // Mostrar mensaje de confirmación
+                this.showPointAddedMessage(point, this.points.length);
+            }
+
+            showPointAddedMessage(point, pointNumber) {
+                // Crear mensaje temporal
+                const message = document.createElement('div');
+                message.className = 'point-added-message';
+                message.innerHTML = `
+                    <div class="message-content">
+                        <h4>✅ Punto Agregado Exitosamente</h4>
+                        <p><strong>Punto ${pointNumber}:</strong> ${point.label || `P${pointNumber}`}</p>
+                        <p><strong>Coordenadas:</strong> (${point.x}, ${point.y})</p>
+                        <p><strong>Color:</strong> <span style="color: ${point.color};">●</span> ${point.color}</p>
+                    </div>
+                `;
+                
+                // Agregar al DOM
+                document.body.appendChild(message);
+                
+                // Remover después de 3 segundos
+                setTimeout(() => {
+                    if (message.parentNode) {
+                        message.parentNode.removeChild(message);
+                    }
+                }, 3000);
+            }
+
+            removePoint(index) {
+                this.points.splice(index, 1);
+                this.draw();
+                this.updateUI();
+            }
+
+            clearAll() {
+                this.points = [];
+                this.draw();
+                this.updateUI();
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.drawGrid();
+                this.drawAxes();
+                this.drawPoints();
+                this.drawLines();
+            }
+
+            drawGrid() {
+                this.ctx.strokeStyle = '#e5e7eb';
+                this.ctx.lineWidth = 0.5;
+                
+                // Líneas verticales
+                for (let x = -this.canvas.width / 2; x <= this.canvas.width / 2; x += this.scale) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.origin.x + x, 0);
+                    this.ctx.lineTo(this.origin.x + x, this.canvas.height);
+                    this.ctx.stroke();
+                }
+                
+                // Líneas horizontales
+                for (let y = -this.canvas.height / 2; y <= this.canvas.height / 2; y += this.scale) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, this.origin.y + y);
+                    this.ctx.lineTo(this.canvas.width, this.origin.y + y);
+                    this.ctx.stroke();
+                }
+            }
+
+            drawAxes() {
+                this.ctx.strokeStyle = '#374151';
+                this.ctx.lineWidth = 2;
+                
+                // Eje X
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, this.origin.y);
+                this.ctx.lineTo(this.canvas.width, this.origin.y);
+                this.ctx.stroke();
+                
+                // Eje Y
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.origin.x, 0);
+                this.ctx.lineTo(this.origin.x, this.canvas.height);
+                this.ctx.stroke();
+                
+                // Etiquetas de los ejes
+                this.ctx.fillStyle = '#374151';
+                this.ctx.font = '12px Arial';
+                this.ctx.textAlign = 'center';
+                
+                // Etiquetas del eje X
+                for (let x = -10; x <= 10; x += 2) {
+                    if (x !== 0) {
+                        this.ctx.fillText(x.toString(), this.origin.x + x * this.scale, this.origin.y + 15);
+                    }
+                }
+                
+                // Etiquetas del eje Y
+                this.ctx.textAlign = 'right';
+                for (let y = -10; y <= 10; y += 2) {
+                    if (y !== 0) {
+                        this.ctx.fillText(y.toString(), this.origin.x - 10, this.origin.y - y * this.scale + 4);
+                    }
+                }
+            }
+
+            drawPoints() {
+                this.points.forEach((point, index) => {
+                    const screenX = this.origin.x + point.x * this.scale;
+                    const screenY = this.origin.y - point.y * this.scale;
+                    
+                    // Círculo del punto
+                    this.ctx.fillStyle = point.color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(screenX, screenY, 6, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                    
+                    // Borde del punto
+                    this.ctx.strokeStyle = '#ffffff';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.stroke();
+                    
+                    // Etiqueta del punto
+                    if (point.label) {
+                        this.ctx.fillStyle = '#374151';
+                        this.ctx.font = 'bold 12px Arial';
+                        this.ctx.textAlign = 'center';
+                        this.ctx.fillText(point.label, screenX, screenY - 15);
+                    }
+                    
+                    // Coordenadas
+                    this.ctx.fillStyle = '#6b7280';
+                    this.ctx.font = '10px Arial';
+                    this.ctx.fillText(`(${point.x}, ${point.y})`, screenX, screenY + 20);
+                });
+            }
+
+            drawLines() {
+                if (this.points.length < 2) return;
+                
+                this.ctx.strokeStyle = '#f59e0b';
+                this.ctx.lineWidth = 2;
+                this.ctx.setLineDash([5, 5]);
+                
+                for (let i = 0; i < this.points.length - 1; i++) {
+                    const point1 = this.points[i];
+                    const point2 = this.points[i + 1];
+                    
+                    const x1 = this.origin.x + point1.x * this.scale;
+                    const y1 = this.origin.y - point1.y * this.scale;
+                    const x2 = this.origin.x + point2.x * this.scale;
+                    const y2 = this.origin.y - point2.y * this.scale;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x1, y1);
+                    this.ctx.lineTo(x2, y2);
+                    this.ctx.stroke();
+                }
+                
+                this.ctx.setLineDash([]);
+            }
+
+            calculateDistance(point1, point2) {
+                const dx = point2.x - point1.x;
+                const dy = point2.y - point1.y;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+
+            calculateTotalDistance() {
+                let total = 0;
+                for (let i = 0; i < this.points.length - 1; i++) {
+                    total += this.calculateDistance(this.points[i], this.points[i + 1]);
+                }
+                return total;
+            }
+
+            updateUI() {
+                this.updatePointsList();
+                this.updateStats();
+            }
+
+            updatePointsList() {
+                const pointsList = document.getElementById('pointsList');
+                
+                if (this.points.length === 0) {
+                    pointsList.innerHTML = '<p style="text-align: center; color: var(--text-light); margin-top: 20px;">No hay puntos agregados</p>';
+                    return;
+                }
+                
+                pointsList.innerHTML = this.points.map((point, index) => `
+                    <div class="point-item">
+                        <div class="point-info">
+                            <div class="point-coords">(${point.x}, ${point.y})</div>
+                            <div class="point-label">${point.label || 'Sin etiqueta'}</div>
+                        </div>
+                        <div class="point-actions">
+                            <button class="btn btn-danger btn-small" onclick="removePoint(${index})">🗑️</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateStats() {
+                document.getElementById('totalPoints').textContent = this.points.length;
+                
+                const totalDistance = this.calculateTotalDistance();
+                document.getElementById('totalDistance').textContent = totalDistance.toFixed(2);
+                
+                const avgDistance = this.points.length > 1 ? totalDistance / (this.points.length - 1) : 0;
+                document.getElementById('avgDistance').textContent = avgDistance.toFixed(2);
+                
+                // Mostrar procedimiento detallado si hay puntos
+                this.showCalculationSteps();
+            }
+
+            showCalculationSteps() {
+                const stepsContainer = document.getElementById('calculationSteps');
+                if (!stepsContainer) return;
+                
+                if (this.points.length === 0) {
+                    stepsContainer.innerHTML = '<p style="text-align: center; color: var(--text-light);">Agrega puntos para ver el procedimiento detallado</p>';
+                    return;
+                }
+                
+                if (this.points.length === 1) {
+                    const point = this.points[0];
+                    stepsContainer.innerHTML = `
+                        <h4>📍 Información del Punto Agregado</h4>
+                        <div class="point-detail">
+                            <h5>Punto 1: ${point.label || 'P1'}</h5>
+                            <div class="point-coords-detail">
+                                <p><strong>Coordenadas:</strong> (${point.x}, ${point.y})</p>
+                                <p><strong>Posición en el plano:</strong></p>
+                                <ul>
+                                    <li>X = ${point.x} → ${point.x > 0 ? 'Derecha' : point.x < 0 ? 'Izquierda' : 'Centro'} del origen</li>
+                                    <li>Y = ${point.y} → ${point.y > 0 ? 'Arriba' : point.y < 0 ? 'Abajo' : 'Centro'} del origen</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-light); font-style: italic;">Agrega otro punto para ver el cálculo de distancia</p>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let stepsHTML = '<h4>🔢 Procedimiento Detallado de Cada Punto</h4>';
+                
+                // Mostrar información de cada punto individual
+                stepsHTML += '<div class="points-info">';
+                this.points.forEach((point, index) => {
+                    stepsHTML += `
+                        <div class="point-detail">
+                            <h5>📍 Punto ${index + 1}: ${point.label || `P${index + 1}`}</h5>
+                            <div class="point-coords-detail">
+                                <p><strong>Coordenadas:</strong> (${point.x}, ${point.y})</p>
+                                <p><strong>Posición en el plano:</strong></p>
+                                <ul>
+                                    <li>X = ${point.x} → ${point.x > 0 ? 'Derecha' : point.x < 0 ? 'Izquierda' : 'Centro'} del origen</li>
+                                    <li>Y = ${point.y} → ${point.y > 0 ? 'Arriba' : point.y < 0 ? 'Abajo' : 'Centro'} del origen</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                });
+                stepsHTML += '</div>';
+                
+                // Mostrar cálculo de todas las distancias entre puntos
+                stepsHTML += '<div class="distances-section">';
+                stepsHTML += '<h5>📏 Cálculo de Distancias Entre TODOS los Puntos</h5>';
+                
+                let distanceCount = 0;
+                for (let i = 0; i < this.points.length; i++) {
+                    for (let j = i + 1; j < this.points.length; j++) {
+                        const point1 = this.points[i];
+                        const point2 = this.points[j];
+                        const distance = this.calculateDistance(point1, point2);
+                        const dx = point2.x - point1.x;
+                        const dy = point2.y - point1.y;
+                        const dx2 = Math.pow(dx, 2);
+                        const dy2 = Math.pow(dy, 2);
+                        const sum = dx2 + dy2;
+                        distanceCount++;
+                        
+                        stepsHTML += `
+                            <div class="step-box">
+                                <h6>🔗 Distancia ${distanceCount}: ${point1.label || `P${i + 1}`} → ${point2.label || `P${j + 1}`}</h6>
+                                <div class="step-calculation">
+                                    <div class="calculation-step">
+                                        <p><strong>Datos de los puntos:</strong></p>
+                                        <p>• Punto A: (${point1.x}, ${point1.y})</p>
+                                        <p>• Punto B: (${point2.x}, ${point2.y})</p>
+                                    </div>
+                                    
+                                    <div class="calculation-step">
+                                        <p><strong>Paso 1: Calcular las diferencias</strong></p>
+                                        <p>Δx = x₂ - x₁ = ${point2.x} - ${point1.x} = ${dx.toFixed(2)}</p>
+                                        <p>Δy = y₂ - y₁ = ${point2.y} - ${point1.y} = ${dy.toFixed(2)}</p>
+                                    </div>
+                                    
+                                    <div class="calculation-step">
+                                        <p><strong>Paso 2: Elevar al cuadrado</strong></p>
+                                        <p>Δx² = (${dx.toFixed(2)})² = ${dx2.toFixed(2)}</p>
+                                        <p>Δy² = (${dy.toFixed(2)})² = ${dy2.toFixed(2)}</p>
+                                    </div>
+                                    
+                                    <div class="calculation-step">
+                                        <p><strong>Paso 3: Sumar los cuadrados</strong></p>
+                                        <p>Δx² + Δy² = ${dx2.toFixed(2)} + ${dy2.toFixed(2)} = ${sum.toFixed(2)}</p>
+                                    </div>
+                                    
+                                    <div class="calculation-step">
+                                        <p><strong>Paso 4: Calcular la raíz cuadrada</strong></p>
+                                        <p>d = √(${sum.toFixed(2)}) = ${distance.toFixed(2)}</p>
+                                    </div>
+                                    
+                                    <div class="result-box">
+                                        <p><strong>🎯 Resultado:</strong> La distancia entre ${point1.label || `P${i + 1}`} y ${point2.label || `P${j + 1}`} es <strong>${distance.toFixed(2)} unidades</strong></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                stepsHTML += '</div>';
+                
+                // Agregar tabla resumen de distancias
+                if (this.points.length >= 2) {
+                    stepsHTML += '<div class="distances-table-section">';
+                    stepsHTML += '<h5>📋 Tabla Resumen de Distancias</h5>';
+                    stepsHTML += '<div class="table-container">';
+                    stepsHTML += '<table class="distances-table">';
+                    stepsHTML += '<thead><tr><th>Punto A</th><th>Punto B</th><th>Distancia</th><th>Fórmula Aplicada</th></tr></thead>';
+                    stepsHTML += '<tbody>';
+                    
+                    let tableRowCount = 0;
+                    for (let i = 0; i < this.points.length; i++) {
+                        for (let j = i + 1; j < this.points.length; j++) {
+                            const point1 = this.points[i];
+                            const point2 = this.points[j];
+                            const distance = this.calculateDistance(point1, point2);
+                            const dx = point2.x - point1.x;
+                            const dy = point2.y - point1.y;
+                            tableRowCount++;
+                            
+                            stepsHTML += `
+                                <tr>
+                                    <td>${point1.label || `P${i + 1}`} (${point1.x}, ${point1.y})</td>
+                                    <td>${point2.label || `P${j + 1}`} (${point2.x}, ${point2.y})</td>
+                                    <td><strong>${distance.toFixed(2)}</strong></td>
+                                    <td>√[(${dx.toFixed(2)})² + (${dy.toFixed(2)})²]</td>
+                                </tr>
+                            `;
+                        }
+                    }
+                    
+                    stepsHTML += '</tbody></table>';
+                    stepsHTML += '</div>';
+                    stepsHTML += '</div>';
+                }
+                
+                // Calcular estadísticas de todas las distancias
+                const allDistances = [];
+                for (let i = 0; i < this.points.length; i++) {
+                    for (let j = i + 1; j < this.points.length; j++) {
+                        allDistances.push(this.calculateDistance(this.points[i], this.points[j]));
+                    }
+                }
+                
+                const totalDistance = allDistances.reduce((sum, dist) => sum + dist, 0);
+                const avgDistance = allDistances.length > 0 ? totalDistance / allDistances.length : 0;
+                const minDistance = allDistances.length > 0 ? Math.min(...allDistances) : 0;
+                const maxDistance = allDistances.length > 0 ? Math.max(...allDistances) : 0;
+                const totalDistanceConsecutive = this.calculateTotalDistance();
+                
+                stepsHTML += `
+                    <div class="summary-box">
+                        <h5>📊 Resumen Completo de Distancias</h5>
+                        <div class="summary-content">
+                            <p><strong>Total de puntos:</strong> ${this.points.length}</p>
+                            <p><strong>Total de distancias calculadas:</strong> ${allDistances.length}</p>
+                            <p><strong>Distancia mínima:</strong> ${minDistance.toFixed(2)} unidades</p>
+                            <p><strong>Distancia máxima:</strong> ${maxDistance.toFixed(2)} unidades</p>
+                            <p><strong>Distancia promedio:</strong> ${avgDistance.toFixed(2)} unidades</p>
+                            <p><strong>Suma de todas las distancias:</strong> ${totalDistance.toFixed(2)} unidades</p>
+                            <p><strong>Distancia del recorrido consecutivo:</strong> ${totalDistanceConsecutive.toFixed(2)} unidades</p>
+                            <p><strong>Fórmula aplicada:</strong> d = √[(x₂-x₁)² + (y₂-y₁)²]</p>
+                        </div>
+                    </div>
+                `;
+                
+                stepsContainer.innerHTML = stepsHTML;
+            }
+        }
+
+        // Inicializar el plano cartesiano
+        const plane = new CartesianPlane('cartesianCanvas');
+
+        // Funciones globales para los botones
+        function addPoint() {
+            const x = parseFloat(document.getElementById('pointX').value);
+            const y = parseFloat(document.getElementById('pointY').value);
+            const label = document.getElementById('pointLabel').value;
+            
+            if (isNaN(x) || isNaN(y)) {
+                alert('Por favor ingresa coordenadas válidas');
+                return;
+            }
+            
+            plane.addPoint(x, y, label);
+            
+            // Limpiar formulario
+            document.getElementById('pointX').value = '';
+            document.getElementById('pointY').value = '';
+            document.getElementById('pointLabel').value = '';
+        }
+
+        function removePoint(index) {
+            plane.removePoint(index);
+        }
+
+        function clearAll() {
+            if (confirm('¿Estás seguro de que quieres eliminar todos los puntos?')) {
+                plane.clearAll();
+            }
+        }
+
+        // Hacer el canvas responsive
+        function resizeCanvas() {
+            const canvas = document.getElementById('cartesianCanvas');
+            const container = canvas.parentElement;
+            const maxWidth = container.clientWidth - 40; // Padding
+            
+            if (maxWidth < 600) {
+                canvas.width = maxWidth;
+                canvas.height = (maxWidth * 400) / 600;
+                plane.origin = {
+                    x: canvas.width / 2,
+                    y: canvas.height / 2
+                };
+                plane.draw();
+            }
+        }
+
+        // Redimensionar al cargar y al cambiar el tamaño de la ventana
+        window.addEventListener('load', resizeCanvas);
+        window.addEventListener('resize', resizeCanvas);
+
+        // Permitir agregar puntos con Enter
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addPoint();
+            }
+        });
+    </script>
+</body>
+</html>
